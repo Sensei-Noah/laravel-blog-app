@@ -6,7 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Post;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
-
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 class PostController extends Controller
 {
 
@@ -25,8 +26,9 @@ class PostController extends Controller
     }
 
     public function store(Request $request){
+       
         $validate = $request->validate([
-            'title' =>'required|unique:post|max:255',
+            'title' =>'required|unique:posts|max:255',
             'content' =>'required',
             'image'=>'mimes:jpeg,jpg,png',
         ]);
@@ -36,10 +38,12 @@ class PostController extends Controller
             $fileName = str_replace('public/', '', $path);
         }
 
+      
         Post::create([
             'title' =>request('title'),
             'content' =>request('content'),
             'image' =>$fileName, // path saved in database
+            'user_id'=>Auth::id(),
         ]);
         return redirect('/');
 
@@ -49,6 +53,9 @@ class PostController extends Controller
     }
 
     public function editPost(Post $post) {
+        if(Gate::denies('edit-post',$post)){
+            dd('You dont have permission to edit');
+        }
         return view('pages.edit-post', compact('post'));
     }
 
@@ -66,7 +73,9 @@ class PostController extends Controller
     }
 
     public function deletePost(Post $post){
-
+        if(Gate::denies('delete-post',$post)){
+            dd('You dont have permission to delete');
+        }
         $post->delete();
 
         return redirect('/');
